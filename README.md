@@ -52,7 +52,8 @@
 | メソッド | パス |
 |---|---|
 | POST | /geocode |
-| OPTIONS | /geocode |
+
+> ⚠️ OPTIONSルートは**作成しない**。HTTP APIはCORS設定が有効であればOPTIONSを自動処理するため、OPTIONSルートにLambdaをアタッチすると競合して400エラーになる。
 
 ### 2-3. インテグレーションの設定
 - インテグレーションタイプ: `Lambda`
@@ -65,13 +66,16 @@
 |---|---|
 | Access-Control-Allow-Origin | `*`（本番はS3のURLに絞る） |
 | Access-Control-Allow-Headers | `content-type` |
-| Access-Control-Allow-Methods | `POST, OPTIONS` |
+| Access-Control-Allow-Methods | `POST` |
+| Access-Control-Max-Age | `300` |
+
+> OPTIONSはAPI Gatewayが自動処理するため、Allow-Methodsに含める必要はない。
 
 ### 2-5. デプロイ
-- ステージ: `prod`
+- 「自動デプロイを有効にする」を選択するとステージ名は **`$default`** になる
 - デプロイ後に表示されるエンドポイントURLをメモ
 
-例: `https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com/prod`
+例: `https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com`
 
 ---
 
@@ -83,9 +87,12 @@
 // 変更前
 const API_ENDPOINT = 'https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com/prod/geocode';
 
-// 変更後（自分のエンドポイントに）
-const API_ENDPOINT = 'https://実際のID.execute-api.ap-northeast-1.amazonaws.com/prod/geocode';
+// 変更後（自動デプロイ・$defaultステージの場合）
+const API_ENDPOINT = 'https://実際のID.execute-api.ap-northeast-1.amazonaws.com/geocode';
+//                                                                               ↑ ステージ名なし
 ```
+
+> ⚠️ 自動デプロイ（$defaultステージ）の場合、URLにステージ名は含まれない。手動デプロイで `prod` ステージを作った場合のみ `/prod/geocode` になる。
 
 ---
 
@@ -152,6 +159,7 @@ APIキーの制限（推奨）：
 |---|---|---|
 | GPS取得が拒否される | ブラウザのGPS許可がオフ | ブラウザ設定から位置情報を許可 |
 | 通信エラーになる | API GatewayのURLが間違い | `API_ENDPOINT` の値を確認 |
+| CORSエラー・400になる | OPTIONSルートにLambdaをアタッチしている | OPTIONSルートを削除する |
 | CORSエラーになる | API GatewayのCORS設定漏れ | 手順2-4を再確認 |
 | 住所が英語になる | `language=ja` が効いていない | Lambda環境変数とコードを確認 |
 | Lambdaがタイムアウト | タイムアウト設定が短い | 手順1-4でタイムアウトを15秒に変更 |
